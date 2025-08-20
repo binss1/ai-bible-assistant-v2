@@ -1,0 +1,47 @@
+{
+  "name": "ai-bible-assistant",
+  "version": "1.0.0",
+  "description": "AI Bible Assistant - 성경 기반 상담 챗봇 시스템",
+  "private": true,
+  "scripts": {
+    "setup": "node setup.js",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "start": "npm run start:backend",
+    "start:backend": "cd backend && npm start",
+    "build": "cd frontend && npm run build",
+    "init-db": "cd backend && npm run init-db",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test"
+  },
+  "keywords": [
+    "bible",
+    "assistant",
+    "ai",
+    "counseling",
+    "claude",
+    "chatbot",
+    "react",
+    "nodejs"
+  ],
+  "author": "AI Bible Assistant Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/binss1/ai-bible-assistant-v2.git"
+  },
+  "bugs": {
+    "url": "https://github.com/binss1/ai-bible-assistant-v2/issues"
+  },
+  "homepage": "https://github.com/binss1/ai-bible-assistant-v2#readme"
+}
