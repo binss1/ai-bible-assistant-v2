@@ -2,42 +2,44 @@
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
+    "./public/index.html"
   ],
   theme: {
     extend: {
-      fontFamily: {
-        'korean': ['Noto Sans KR', 'sans-serif'],
-      },
       colors: {
         primary: {
-          50: '#f0f4ff',
-          100: '#e1eafe',
-          200: '#c3d4fd',
-          300: '#a5bffc',
-          400: '#87a9fa',
-          500: '#667eea',
-          600: '#5a6fd8',
-          700: '#4e5fc6',
-          800: '#424fb4',
-          900: '#363fa2',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
         },
-        secondary: {
-          50: '#f5f3ff',
-          100: '#ebe7fe',
-          200: '#d7cffd',
-          300: '#c3b7fc',
-          400: '#af9ffb',
-          500: '#764ba2',
-          600: '#6b4492',
-          700: '#603d82',
-          800: '#553672',
-          900: '#4a2f62',
+        bible: {
+          50: '#fefce8',
+          100: '#fef9c3',
+          200: '#fef08a',
+          300: '#fde047',
+          400: '#facc15',
+          500: '#eab308',
+          600: '#ca8a04',
+          700: '#a16207',
+          800: '#854d0e',
+          900: '#713f12',
         }
       },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
+        bible: ['Georgia', 'Times New Roman', 'serif'],
+      },
       animation: {
-        'fade-in': 'fadeIn 0.3s ease-out',
+        'fade-in': 'fadeIn 0.5s ease-in',
         'slide-up': 'slideUp 0.3s ease-out',
-        'bounce-gentle': 'bounceGentle 0.5s ease-out',
+        'pulse-slow': 'pulse 3s infinite',
       },
       keyframes: {
         fadeIn: {
@@ -45,18 +47,19 @@ module.exports = {
           '100%': { opacity: '1' },
         },
         slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
         },
-        bounceGentle: {
-          '0%': { transform: 'scale(0.95)' },
-          '50%': { transform: 'scale(1.02)' },
-          '100%': { transform: 'scale(1)' },
-        }
+      },
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+        '128': '32rem',
       }
     },
   },
   plugins: [
-    require('@tailwindcss/forms'),
+    // Tailwind Forms는 선택사항으로 만듭니다
+    // require('@tailwindcss/forms'),
   ],
-}
+};
