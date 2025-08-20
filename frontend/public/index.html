@@ -4,20 +4,229 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="AI Bible Assistant - 성경 기반 상담 챗봇" />
+    <meta name="theme-color" content="#6366f1" />
+    <meta name="description" content="AI Bible Assistant - 성경의 지혜로 여러분의 고민에 답해드리는 AI 상담사" />
+    
+    <!-- PWA 관련 메타 태그 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="AI Bible Assistant" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ai-bible-assistant.vercel.app/" />
+    <meta property="og:title" content="AI Bible Assistant" />
+    <meta property="og:description" content="성경의 지혜로 여러분의 고민에 답해드리는 AI 상담사" />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.png" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://ai-bible-assistant.vercel.app/" />
+    <meta property="twitter:title" content="AI Bible Assistant" />
+    <meta property="twitter:description" content="성경의 지혜로 여러분의 고민에 답해드리는 AI 상담사" />
+    <meta property="twitter:image" content="%PUBLIC_URL%/og-image.png" />
+    
+    <!-- 아이콘들 -->
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     
-    <!-- Google Fonts -->
+    <!-- 폰트 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <title>AI Bible Assistant</title>
+    <!-- 기본 CSS 변수 -->
+    <style>
+      :root {
+        /* 컬러 팔레트 */
+        --primary-color: #6366f1;
+        --primary-hover: #5855eb;
+        --secondary-color: #f3f4f6;
+        --text-primary: #1f2937;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+        --background: #ffffff;
+        --surface: #f9fafb;
+        --border: #e5e7eb;
+        --error: #ef4444;
+        --warning: #f59e0b;
+        --success: #10b981;
+        --info: #3b82f6;
+        
+        /* 다크 모드 */
+        --dark-background: #111827;
+        --dark-surface: #1f2937;
+        --dark-text-primary: #f9fafb;
+        --dark-text-secondary: #d1d5db;
+        --dark-border: #374151;
+        
+        /* 폰트 */
+        --font-family: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        --font-size-xs: 0.75rem;
+        --font-size-sm: 0.875rem;
+        --font-size-base: 1rem;
+        --font-size-lg: 1.125rem;
+        --font-size-xl: 1.25rem;
+        --font-size-2xl: 1.5rem;
+        --font-size-3xl: 1.875rem;
+        
+        /* 간격 */
+        --spacing-1: 0.25rem;
+        --spacing-2: 0.5rem;
+        --spacing-3: 0.75rem;
+        --spacing-4: 1rem;
+        --spacing-5: 1.25rem;
+        --spacing-6: 1.5rem;
+        --spacing-8: 2rem;
+        --spacing-10: 2.5rem;
+        --spacing-12: 3rem;
+        
+        /* 모서리 */
+        --border-radius-sm: 0.25rem;
+        --border-radius: 0.375rem;
+        --border-radius-lg: 0.5rem;
+        --border-radius-xl: 0.75rem;
+        
+        /* 그림자 */
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        
+        /* 트랜지션 */
+        --transition-fast: 150ms ease-in-out;
+        --transition-normal: 200ms ease-in-out;
+        --transition-slow: 300ms ease-in-out;
+      }
+      
+      /* 다크 모드 적용 */
+      [data-theme="dark"] {
+        --background: var(--dark-background);
+        --surface: var(--dark-surface);
+        --text-primary: var(--dark-text-primary);
+        --text-secondary: var(--dark-text-secondary);
+        --border: var(--dark-border);
+      }
+      
+      /* 폰트 크기 설정 */
+      [data-font-size="small"] {
+        --font-size-base: 0.875rem;
+        --font-size-lg: 1rem;
+        --font-size-xl: 1.125rem;
+      }
+      
+      [data-font-size="large"] {
+        --font-size-base: 1.125rem;
+        --font-size-lg: 1.25rem;
+        --font-size-xl: 1.5rem;
+      }
+      
+      /* 기본 스타일 */
+      * {
+        box-sizing: border-box;
+      }
+      
+      body {
+        margin: 0;
+        font-family: var(--font-family);
+        font-size: var(--font-size-base);
+        color: var(--text-primary);
+        background-color: var(--background);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* 로딩 화면 */
+      .initial-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--background);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--border);
+        border-top: 3px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: var(--spacing-4);
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loading-text {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+      }
+    </style>
+    
+    <title>AI Bible Assistant - 성경 AI 상담사</title>
   </head>
   <body>
-    <noscript>이 애플리케이션을 사용하려면 JavaScript를 활성화해주세요.</noscript>
+    <noscript>이 앱을 실행하려면 JavaScript가 필요합니다.</noscript>
+    
+    <!-- 초기 로딩 화면 -->
+    <div id="initial-loading" class="initial-loading">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">AI Bible Assistant 로딩 중...</div>
+    </div>
+    
+    <!-- React 앱이 마운트될 루트 엘리먼트 -->
     <div id="root"></div>
+    
+    <!-- 로딩 화면 제거 스크립트 -->
+    <script>
+      // React 앱이 로드되면 초기 로딩 화면 제거
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          const loadingElement = document.getElementById('initial-loading');
+          if (loadingElement) {
+            loadingElement.style.opacity = '0';
+            loadingElement.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(function() {
+              loadingElement.remove();
+            }, 300);
+          }
+        }, 1000);
+      });
+      
+      // 서비스 워커 지원 확인
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          // React 앱에서 등록하므로 여기서는 체크만
+          console.log('Service Worker 지원됨');
+        });
+      }
+      
+      // 기본 테마 설정
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      
+      // 시스템 테마 변경 감지
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+          if (!localStorage.getItem('theme')) {
+            document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+          }
+        });
+      }
+    </script>
   </body>
 </html>
