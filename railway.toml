@@ -1,0 +1,42 @@
+# Railway 배포 설정
+# 이 파일은 Railway CLI를 사용하여 배포할 때 참조됩니다.
+
+# 백엔드 서비스
+backend:
+  build:
+    commands:
+      - cd backend && npm install
+  start:
+    command: cd backend && npm start
+  environment:
+    NODE_ENV: production
+    PORT: $PORT
+    # 다음 환경변수들은 Railway 대시보드에서 설정해야 합니다:
+    # MONGODB_URI: MongoDB Atlas URI
+    # CLAUDE_API_KEY: Claude API 키
+    # JWT_SECRET: JWT 시크릿 키
+  healthcheck:
+    path: /api/health
+    interval: 30
+    timeout: 10
+
+# 프론트엔드 서비스
+frontend:
+  build:
+    commands:
+      - cd frontend && npm install
+      - cd frontend && npm run build
+  start:
+    command: npx serve -s frontend/build -l $PORT
+  environment:
+    # Railway에서 백엔드 URL을 설정
+    REACT_APP_API_URL: $BACKEND_URL
+  healthcheck:
+    path: /
+    interval: 30
+    timeout: 10
+
+# 필요한 환경 변수들 (Railway 대시보드에서 설정)
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/bible_assistant
+# CLAUDE_API_KEY=your_claude_api_key
+# JWT_SECRET=your_jwt_secret_key
