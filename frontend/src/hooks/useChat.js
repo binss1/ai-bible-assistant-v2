@@ -5,10 +5,12 @@ import { bibleService } from '../services/bibleService';
 export const useChat = () => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [conversationHistory, setConversationHistory] = useState([]);
   const [currentStep, setCurrentStep] = useState('greeting');
+  const [isConnected, setIsConnected] = useState(true);
   const messagesEndRef = useRef(null);
 
   // 세션 초기화
@@ -27,8 +29,8 @@ export const useChat = () => {
     
     // 초기 인사 메시지
     const welcomeMessage = {
-      id: Date.now(),
-      type: 'assistant',
+      messageId: Date.now(),
+      type: 'bot',
       content: `안녕하세요! 저는 **AI Bible Assistant**입니다. 🙏
 
 성경의 지혜로 여러분의 고민과 질문에 답해드리겠습니다.
@@ -57,14 +59,17 @@ export const useChat = () => {
   };
 
   const sendMessage = async (userMessage) => {
-    if (!userMessage.trim()) return;
+    if (!userMessage.trim()) {
+      return { success: false, error: '메시지를 입력해주세요.' };
+    }
 
     setIsLoading(true);
+    setIsTyping(true);
     setError(null);
 
     // 사용자 메시지 추가
     const newUserMessage = {
-      id: Date.now(),
+      messageId: Date.now(),
       type: 'user',
       content: userMessage,
       timestamp: new Date().toISOString(),
@@ -93,8 +98,8 @@ export const useChat = () => {
 
       // AI 응답 메시지 생성
       const assistantMessage = {
-        id: Date.now() + 1,
-        type: 'assistant',
+        messageId: Date.now() + 1,
+        type: 'bot',
         content: response.content,
         bibleVerses: bibleVerses,
         timestamp: new Date().toISOString(),
@@ -107,14 +112,16 @@ export const useChat = () => {
       setConversationHistory(prev => [...prev, newUserMessage, assistantMessage]);
       setCurrentStep(response.nextStep || currentStep);
 
+      return { success: true };
+
     } catch (err) {
       console.error('메시지 전송 실패:', err);
       setError('메시지 전송에 실패했습니다. 다시 시도해 주세요.');
       
       // 에러 메시지 추가
       const errorMessage = {
-        id: Date.now() + 1,
-        type: 'assistant',
+        messageId: Date.now() + 1,
+        type: 'bot',
         content: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
         timestamp: new Date().toISOString(),
         step: currentStep,
@@ -122,8 +129,24 @@ export const useChat = () => {
       };
       
       setMessages(prev => [...prev, errorMessage]);
+      return { success: false, error: err.message };
     } finally {
       setIsLoading(false);
+      setIsTyping(false);
+    }
+  };
+
+  const startNewSession = async () => {
+    try {
+      setMessages([]);
+      setConversationHistory([]);
+      setError(null);
+      setCurrentStep('greeting');
+      initializeSession();
+      return { success: true };
+    } catch (error) {
+      console.error('새 세션 시작 실패:', error);
+      return { success: false, error: error.message };
     }
   };
 
@@ -135,18 +158,25 @@ export const useChat = () => {
     if (lastUserMessage) {
       // 마지막 AI 응답 제거하고 다시 시도
       setMessages(prev => prev.filter(msg => 
-        !(msg.type === 'assistant' && msg.timestamp > lastUserMessage.timestamp)
+        !(msg.type === 'bot' && msg.timestamp > lastUserMessage.timestamp)
       ));
       await sendMessage(lastUserMessage.content);
     }
   };
 
   const clearChat = () => {
-    setMessages([]);
-    setConversationHistory([]);
-    setError(null);
-    setCurrentStep('greeting');
-    initializeSession();
+    startNewSession();
+  };
+
+  const submitMessageFeedback = async (messageId, helpful) => {
+    try {
+      // 피드백 저장 로직 (향후 구현)
+      console.log('피드백 제출:', { messageId, helpful });
+      return { success: true };
+    } catch (error) {
+      console.error('피드백 제출 실패:', error);
+      return { success: false, error: error.message };
+    }
   };
 
   const saveConversation = async () => {
@@ -191,17 +221,22 @@ export const useChat = () => {
   };
 
   return {
+    sessionId,
     messages,
     isLoading,
+    isTyping,
     error,
-    sessionId,
+    isConnected,
     currentStep,
     conversationHistory,
+    messagesEndRef,
     sendMessage,
+    startNewSession, // 이제 이 함수가 반환됩니다!
     retryLastMessage,
     clearChat,
+    submitMessageFeedback,
     saveConversation,
     loadConversation,
-    messagesEndRef
+    setError
   };
 };
