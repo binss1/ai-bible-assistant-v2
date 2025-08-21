@@ -37,7 +37,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB 연결
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-bible-assistant', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bible_assistant', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
@@ -65,6 +65,11 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     status: 'running'
   });
+});
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Socket.IO 연결 처리
