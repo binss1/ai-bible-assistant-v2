@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { claudeService } from '../services/claudeService';
-import { bibleService } from '../services/bibleService';
+import { api } from '../services/api';
 
 export const useChat = () => {
   const [messages, setMessages] = useState([]);
@@ -15,43 +14,62 @@ export const useChat = () => {
 
   // 세션 초기화
   useEffect(() => {
-    initializeSession();
-  }, []);
+    if (!sessionId) {
+      initializeSession();
+    }
+  }, [sessionId]);
 
   // 메시지 스크롤
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const initializeSession = () => {
-    const newSessionId = generateSessionId();
-    setSessionId(newSessionId);
-    
-    // 초기 인사 메시지
-    const welcomeMessage = {
-      messageId: Date.now(),
-      type: 'bot',
-      content: `안녕하세요! 저는 **AI Bible Assistant**입니다. 🙏
-
-성경의 지혜로 여러분의 고민과 질문에 답해드리겠습니다.
-
-어떤 고민이나 질문이 있으시나요? 예를 들어:
-• 인간관계에서의 어려움
-• 인생의 방향성에 대한 고민  
-• 영적인 성장에 대한 질문
-• 삶의 어려운 상황에 대한 조언
-
-편안하게 말씀해 주세요.`,
-      timestamp: new Date().toISOString(),
-      step: 'greeting'
-    };
-    
-    setMessages([welcomeMessage]);
-    setCurrentStep('listening');
+  const getUserId = () => {
+    let userId = localStorage.getItem('userId');
+    if (!userId) {
+      userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('userId', userId);
+    }
+    return userId;
   };
 
-  const generateSessionId = () => {
-    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  const initializeSession = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // 사용자 ID 가져오기
+      const userId = getUserId();
+      
+      // 백엔드에서 새 세션 시작
+      const response = await api.post('/chat/start', {
+        userId,
+        nickname: '익명'
+      });
+      
+      if (response.data.success) {
+        setSessionId(response.data.sessionId);
+        
+        // 환영 메시지 추가
+        const welcomeMessage = {
+          messageId: response.data.welcomeMessage.messageId,
+          type: 'bot',
+          content: response.data.welcomeMessage.content,
+          timestamp: response.data.welcomeMessage.timestamp,
+          step: 'greeting'
+        };
+        
+        setMessages([welcomeMessage]);
+        setCurrentStep('listening');
+        setIsConnected(true);
+      }
+    } catch (error) {
+      console.error('세션 초기화 오류:', error);
+      setError('세션을 시작할 수 없습니다. 다시 시도해 주세요.');
+      setIsConnected(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const scrollToBottom = () => {
@@ -61,6 +79,11 @@ export const useChat = () => {
   const sendMessage = async (userMessage) => {
     if (!userMessage.trim()) {
       return { success: false, error: '메시지를 입력해주세요.' };
+    }
+
+    if (!sessionId) {
+      setError('세션이 시작되지 않았습니다. 새로고침 후 다시 시도해주세요.');
+      return { success: false, error: '세션이 없습니다.' };
     }
 
     setIsLoading(true);
@@ -79,56 +102,62 @@ export const useChat = () => {
     setMessages(prev => [...prev, newUserMessage]);
 
     try {
-      // 대화 컨텍스트 준비
-      const context = {
-        sessionId,
-        conversationHistory: [...conversationHistory, newUserMessage],
-        currentStep,
-        previousMessages: messages.slice(-5) // 최근 5개 메시지만 컨텍스트로 사용
-      };
-
-      // Claude API 호출
-      const response = await claudeService.sendMessage(userMessage, context);
+      const userId = getUserId();
       
-      // 성경 구절 검색 (필요한 경우)
-      let bibleVerses = [];
-      if (response.needsBibleSearch) {
-        bibleVerses = await bibleService.searchVerses(response.searchTerms);
+      // 백엔드로 메시지 전송
+      const response = await api.post('/chat/message', {
+        sessionId,
+        userId,
+        message: userMessage
+      });
+
+      if (response.data.success) {
+        const { response: botResponse } = response.data;
+        
+        // AI 응답 메시지 생성
+        const assistantMessage = {
+          messageId: botResponse.messageId,
+          type: 'bot',
+          content: botResponse.content,
+          bibleVerses: botResponse.bibleReferences || [],
+          timestamp: botResponse.timestamp,
+          step: botResponse.analysis?.stage || currentStep,
+          analysis: botResponse.analysis
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+        setConversationHistory(prev => [...prev, newUserMessage, assistantMessage]);
+        setCurrentStep(botResponse.analysis?.stage || currentStep);
+
+        return { success: true };
+      } else {
+        throw new Error(response.data.error || '메시지 전송에 실패했습니다.');
       }
-
-      // AI 응답 메시지 생성
-      const assistantMessage = {
-        messageId: Date.now() + 1,
-        type: 'bot',
-        content: response.content,
-        bibleVerses: bibleVerses,
-        timestamp: new Date().toISOString(),
-        step: response.nextStep || currentStep,
-        clarifyingQuestions: response.clarifyingQuestions || [],
-        confidence: response.confidence || 'medium'
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      setConversationHistory(prev => [...prev, newUserMessage, assistantMessage]);
-      setCurrentStep(response.nextStep || currentStep);
-
-      return { success: true };
 
     } catch (err) {
       console.error('메시지 전송 실패:', err);
-      setError('메시지 전송에 실패했습니다. 다시 시도해 주세요.');
+      
+      let errorMessage = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+      
+      if (err.response?.status === 429) {
+        errorMessage = 'API 사용량이 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.';
+      } else if (err.response?.status === 401) {
+        errorMessage = 'API 키가 유효하지 않습니다. 관리자에게 문의해주세요.';
+      }
+      
+      setError(errorMessage);
       
       // 에러 메시지 추가
-      const errorMessage = {
+      const errorMessageObj = {
         messageId: Date.now() + 1,
         type: 'bot',
-        content: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+        content: errorMessage,
         timestamp: new Date().toISOString(),
         step: currentStep,
         isError: true
       };
       
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessageObj]);
       return { success: false, error: err.message };
     } finally {
       setIsLoading(false);
@@ -142,7 +171,8 @@ export const useChat = () => {
       setConversationHistory([]);
       setError(null);
       setCurrentStep('greeting');
-      initializeSession();
+      setSessionId(null);
+      await initializeSession();
       return { success: true };
     } catch (error) {
       console.error('새 세션 시작 실패:', error);
@@ -231,7 +261,7 @@ export const useChat = () => {
     conversationHistory,
     messagesEndRef,
     sendMessage,
-    startNewSession, // 이제 이 함수가 반환됩니다!
+    startNewSession,
     retryLastMessage,
     clearChat,
     submitMessageFeedback,
