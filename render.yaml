@@ -10,15 +10,19 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3001
+        value: 10000
       - key: MONGODB_URI
-        sync: false # 환경 변수에서 설정
+        sync: false # MongoDB Atlas에서 설정
       - key: CLAUDE_API_KEY
-        sync: false # 환경 변수에서 설정
+        sync: false # Anthropic에서 발급받은 키
       - key: JWT_SECRET
         generateValue: true
-      - key: CORS_ORIGIN
+      - key: CORS_ORIGINS
         value: https://ai-bible-assistant-frontend.onrender.com
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
 
   # 프론트엔드 정적 사이트
   - type: web
@@ -30,7 +34,9 @@ services:
     envVars:
       - key: REACT_APP_API_URL
         value: https://ai-bible-assistant-backend.onrender.com
+      - key: REACT_APP_CLAUDE_MODEL
+        value: claude-3-sonnet-20240229
 
-  # MongoDB (Atlas 무료 티어 사용 권장)
-  # render.yaml에서 데이터베이스 서비스는 제한적이므로 
-  # MongoDB Atlas 무료 계정을 사용하는 것을 권장합니다.
+# MongoDB Atlas 무료 계정 사용 권장
+# 1. https://cloud.mongodb.com 에서 무료 계정 생성
+# 2. 클러스터 생성 후 연결 문자열을 MONGODB_URI에 설정
