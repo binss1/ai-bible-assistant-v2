@@ -1,11 +1,15 @@
 import axios from 'axios';
 
-// API 기본 설정
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// API 기본 설정 - /api 경로를 포함해서 설정
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = `${API_BASE_URL}/api`;
+
+console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('🔗 Full API URL:', API_URL);
 
 // Axios 인스턴스 생성
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_URL,
   timeout: 30000, // 30초 타임아웃
   headers: {
     'Content-Type': 'application/json',
@@ -18,6 +22,7 @@ apiClient.interceptors.request.use(
     // 요청 로깅
     if (process.env.NODE_ENV === 'development') {
       console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`📍 Full URL: ${config.baseURL}${config.url}`);
     }
     
     // 인증 토큰 추가 (필요시)
@@ -46,7 +51,13 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     // 에러 응답 처리
-    console.error('❌ API Error:', error.response?.data || error.message);
+    console.error('❌ API Error:', {
+      status: error.response?.status,
+      message: error.message,
+      url: error.config?.url,
+      fullURL: error.config?.baseURL + error.config?.url,
+      data: error.response?.data
+    });
     
     // 사용자 친화적 에러 메시지 생성
     const errorMessage = getErrorMessage(error);
@@ -80,7 +91,7 @@ function getErrorMessage(error) {
     case 403:
       return '접근 권한이 없습니다.';
     case 404:
-      return '요청한 정보를 찾을 수 없습니다.';
+      return '요청한 API를 찾을 수 없습니다. 서버 설정을 확인해주세요.';
     case 429:
       return '너무 많은 요청입니다. 잠시 후 다시 시도해주세요.';
     case 500:
@@ -133,16 +144,18 @@ export const api = {
   }
 };
 
-// 연결 상태 확인
+// 연결 상태 확인 - 기본 API 경로가 아닌 루트로 확인
 export const checkApiConnection = async () => {
   try {
-    const response = await apiClient.get('/');
+    const response = await axios.get(API_BASE_URL);
     return {
       connected: true,
       message: response.data.message || 'API 연결 성공',
-      status: response.data.status
+      status: response.data.status,
+      database: response.data.database
     };
   } catch (error) {
+    console.error('🔌 API 연결 확인 실패:', error);
     return {
       connected: false,
       message: error.userMessage || 'API 연결 실패',
