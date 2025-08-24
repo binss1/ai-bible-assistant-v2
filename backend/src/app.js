@@ -28,7 +28,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate Limiting
+// Rate Limiting - API 경로에만 적용
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15분
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
@@ -54,14 +54,15 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 요청 로깅 미들웨어 - 항상 활성화
+// 요청 로깅 미들웨어 - 간소화
 app.use((req, res, next) => {
   console.log(`📡 ${new Date().toISOString()} - ${req.method} ${req.url}`);
-  console.log(`📋 Headers:`, JSON.stringify(req.headers, null, 2));
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log(`📦 Body:`, JSON.stringify(req.body, null, 2));
-  }
   next();
+});
+
+// favicon 처리 - 먼저 처리
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
 });
 
 // 기본 라우트 (헬스 체크 겸용)
@@ -77,35 +78,17 @@ app.get('/', (req, res) => {
       connected: dbStatus.isConnected,
       status: ['disconnected', 'connected', 'connecting', 'disconnecting'][dbStatus.readyState] || 'unknown'
     },
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// API 문서 경로
-app.get('/api/docs', (req, res) => {
-  res.json({
-    title: 'AI Bible Assistant API',
-    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
     endpoints: {
-      'GET /': 'API 정보',
-      'GET /api/health': '시스템 상태 확인',
-      'GET /api/health/detailed': '상세 시스템 정보',
-      'GET /api/health/database': '데이터베이스 상태',
-      'GET /api/version': 'API 버전 정보',
-      'GET /api/docs': 'API 문서',
-      'POST /api/chat/start': '채팅 세션 시작',
-      'POST /api/chat/message': '채팅 메시지 전송',
-      'GET /api/bible/search': '성경 구절 검색',
-      'POST /api/prayer/generate': '기도문 생성'
-    },
-    websocket: {
-      endpoint: '/socket.io',
-      events: ['connection', 'join-chat', 'send-message', 'receive-message', 'disconnect']
+      health: '/api/health',
+      docs: '/api/docs',
+      chat: '/api/chat',
+      bible: '/api/bible',
+      prayer: '/api/prayer'
     }
   });
 });
 
-// 직접 라우터 로드 - 지연 없이
 console.log('🔄 라우터 로드 시작...');
 
 // Health check 라우터 먼저 로드
@@ -142,6 +125,35 @@ try {
 }
 
 console.log('✅ 모든 라우터 로드 완료');
+
+// API 문서 경로
+app.get('/api/docs', (req, res) => {
+  res.json({
+    title: 'AI Bible Assistant API',
+    version: '1.0.0',
+    description: '성경의 지혜로 상담해주는 AI Assistant API',
+    baseURL: req.protocol + '://' + req.get('host'),
+    endpoints: {
+      'GET /': 'API 기본 정보',
+      'GET /api/health': '시스템 상태 확인',
+      'GET /api/health/detailed': '상세 시스템 정보',
+      'GET /api/health/database': '데이터베이스 상태',
+      'GET /api/version': 'API 버전 정보',
+      'GET /api/docs': 'API 문서',
+      'POST /api/chat/start': '채팅 세션 시작',
+      'POST /api/chat/message': '채팅 메시지 전송',
+      'GET /api/bible/search': '성경 구절 검색',
+      'POST /api/prayer/generate': '기도문 생성'
+    },
+    websocket: {
+      endpoint: '/socket.io',
+      events: ['connection', 'join-chat', 'send-message', 'receive-message', 'disconnect']
+    },
+    cors: {
+      origins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000']
+    }
+  });
+});
 
 // Socket.IO 연결 처리
 io.on('connection', (socket) => {
@@ -237,15 +249,15 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 핸들링 - 상세 로그 추가
+// 404 핸들링
 app.use('*', (req, res) => {
   console.log(`❌ 404 에러: ${req.method} ${req.url}`);
-  console.log(`📍 요청된 경로를 찾을 수 없습니다.`);
   
   res.status(404).json({
     error: '요청하신 경로를 찾을 수 없습니다.',
     requestedPath: req.url,
     method: req.method,
+    message: '올바른 API 경로를 확인해주세요.',
     availableEndpoints: {
       'GET /': 'API 정보',
       'GET /api/health': '시스템 상태',
@@ -263,7 +275,9 @@ const PORT = process.env.PORT || 3001;
 const startServer = async () => {
   try {
     // 데이터베이스 연결
+    console.log('🔄 데이터베이스 연결 중...');
     await database.connect();
+    console.log('✅ 데이터베이스 연결 완료');
     
     // 서버 시작
     server.listen(PORT, '0.0.0.0', () => {
@@ -271,6 +285,7 @@ const startServer = async () => {
       console.log(`📖 API 문서: http://localhost:${PORT}/api/docs`);
       console.log(`🏥 헬스 체크: http://localhost:${PORT}/api/health`);
       console.log(`🌐 환경: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔗 CORS 허용: ${process.env.CORS_ORIGINS || 'http://localhost:3000'}`);
     });
     
   } catch (error) {
