@@ -11,6 +11,29 @@ class DatabaseConnection {
 
   async connect() {
     try {
+      // 환경변수 디버깅
+      const mongoUri = process.env.MONGODB_URI;
+      console.log('🔍 환경변수 디버깅:');
+      console.log('   - MONGODB_URI 존재:', !!mongoUri);
+      console.log('   - MONGODB_URI 타입:', typeof mongoUri);
+      console.log('   - MONGODB_URI 길이:', mongoUri?.length);
+      console.log('   - 첫 20자:', mongoUri?.substring(0, 20));
+      
+      // 연결 문자열 검증
+      if (!mongoUri) {
+        throw new Error('MONGODB_URI 환경변수가 설정되지 않았습니다.');
+      }
+
+      // 잘못된 형식 체크 및 수정
+      let cleanUri = mongoUri.trim();
+      if (cleanUri.startsWith('MONGODB_URI=')) {
+        console.log('⚠️ URI에서 환경변수명 제거');
+        cleanUri = cleanUri.replace('MONGODB_URI=', '');
+      }
+
+      console.log('🔄 MongoDB 연결 시도 중...');
+      console.log('📍 정리된 URI:', this.maskConnectionString(cleanUri));
+
       // MongoDB Atlas 연결 옵션 최적화
       const options = {
         useNewUrlParser: true,
@@ -26,15 +49,7 @@ class DatabaseConnection {
         ssl: true, // SSL 강제 사용
       };
 
-      // 연결 문자열 검증
-      if (!process.env.MONGODB_URI) {
-        throw new Error('MONGODB_URI 환경변수가 설정되지 않았습니다.');
-      }
-
-      console.log('🔄 MongoDB 연결 시도 중...');
-      console.log('📍 연결 대상:', this.maskConnectionString(process.env.MONGODB_URI));
-
-      await mongoose.connect(process.env.MONGODB_URI, options);
+      await mongoose.connect(cleanUri, options);
       
       this.isConnected = true;
       this.connectionRetries = 0;
@@ -60,6 +75,13 @@ class DatabaseConnection {
 
   analyzeError(error) {
     const errorMessage = error.message.toLowerCase();
+    
+    if (errorMessage.includes('invalid scheme')) {
+      console.error('🔗 URI 형식 오류:');
+      console.error('   - 연결 문자열이 mongodb:// 또는 mongodb+srv://로 시작해야 함');
+      console.error('   - 환경변수 설정에서 MONGODB_URI= 부분이 포함되었을 가능성');
+      console.error('   - 현재 URI:', process.env.MONGODB_URI?.substring(0, 50));
+    }
     
     if (errorMessage.includes('bad auth') || errorMessage.includes('authentication failed')) {
       console.error('🔐 인증 오류 발생:');
@@ -134,7 +156,7 @@ class DatabaseConnection {
 
   maskConnectionString(connectionString) {
     // 보안을 위해 비밀번호 마스킹
-    return connectionString.replace(/(:\/\/)([^:]+):([^@]+)(@)/, '$1$2:***$4');
+    return connectionString.replace(/(:\/)([^:]+):([^@]+)(@)/, '$1$2:***$4');
   }
 
   getConnectionStatus() {
