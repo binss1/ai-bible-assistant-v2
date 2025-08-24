@@ -81,37 +81,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  const dbStatus = database.getConnectionStatus();
-  
-  const healthStatus = {
-    status: dbStatus.isConnected ? 'OK' : 'ERROR',
-    timestamp: new Date().toISOString(),
-    services: {
-      database: {
-        status: dbStatus.isConnected ? 'healthy' : 'unhealthy',
-        details: {
-          readyState: dbStatus.readyState,
-          host: dbStatus.host,
-          name: dbStatus.name
-        }
-      },
-      api: {
-        status: 'healthy'
-      }
-    },
-    uptime: process.uptime(),
-    memory: {
-      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
-      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
-    }
-  };
-
-  const statusCode = dbStatus.isConnected ? 200 : 503;
-  res.status(statusCode).json(healthStatus);
-});
-
 // API 문서 경로
 app.get('/api/docs', (req, res) => {
   res.json({
@@ -120,6 +89,9 @@ app.get('/api/docs', (req, res) => {
     endpoints: {
       'GET /': 'API 정보',
       'GET /api/health': '시스템 상태 확인',
+      'GET /api/health/detailed': '상세 시스템 정보',
+      'GET /api/health/database': '데이터베이스 상태',
+      'GET /api/version': 'API 버전 정보',
       'GET /api/docs': 'API 문서',
       'POST /api/chat/start': '채팅 세션 시작',
       'POST /api/chat/message': '채팅 메시지 전송',
@@ -135,6 +107,15 @@ app.get('/api/docs', (req, res) => {
 
 // 직접 라우터 로드 - 지연 없이
 console.log('🔄 라우터 로드 시작...');
+
+// Health check 라우터 먼저 로드
+try {
+  const healthRoutes = require('./routes/health');
+  app.use('/api', healthRoutes);
+  console.log('✅ Health 라우터 로드됨');
+} catch (error) {
+  console.error('❌ Health 라우터 로드 실패:', error.message);
+}
 
 try {
   const chatRoutes = require('./routes/chat');
