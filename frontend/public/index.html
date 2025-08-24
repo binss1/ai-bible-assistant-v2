@@ -2,7 +2,6 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#6366f1" />
     <meta name="description" content="AI Bible Assistant - 성경의 지혜로 여러분의 고민에 답해드리는 AI 상담사" />
@@ -15,20 +14,17 @@
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://ai-bible-assistant.vercel.app/" />
+    <meta property="og:url" content="https://ai-bible-assistant-frontend.onrender.com/" />
     <meta property="og:title" content="AI Bible Assistant" />
     <meta property="og:description" content="성경의 지혜로 여러분의 고민에 답해드리는 AI 상담사" />
-    <meta property="og:image" content="%PUBLIC_URL%/og-image.png" />
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://ai-bible-assistant.vercel.app/" />
+    <meta property="twitter:url" content="https://ai-bible-assistant-frontend.onrender.com/" />
     <meta property="twitter:title" content="AI Bible Assistant" />
     <meta property="twitter:description" content="성경의 지혜로 여러분의 고민에 답해드리는 AI 상담사" />
-    <meta property="twitter:image" content="%PUBLIC_URL%/og-image.png" />
     
-    <!-- 아이콘들 -->
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!-- PWA Manifest -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     
     <!-- 폰트 -->
@@ -206,7 +202,6 @@
       // 서비스 워커 지원 확인
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          // React 앱에서 등록하므로 여기서는 체크만
           console.log('Service Worker 지원됨');
         });
       }
