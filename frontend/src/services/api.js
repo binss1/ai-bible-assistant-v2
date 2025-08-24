@@ -1,12 +1,17 @@
 import axios from 'axios';
 
-// API 기본 설정
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// API 기본 설정 - /api 경로 제거하여 apiClient.js와 통일
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = `${API_BASE_URL}/api`; // /api 경로는 여기서 추가
+
+console.log('🌐 API.js - Base URL:', API_BASE_URL);
+console.log('🔗 API.js - Full API URL:', API_URL);
+
 const CLAUDE_API_URL = process.env.REACT_APP_CLAUDE_API_URL || 'https://api.anthropic.com/v1';
 
-// Axios 인스턴스 생성
+// Axios 인스턴스 생성 - 올바른 API_URL 사용
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_URL,
   timeout: 30000, // 30초
   headers: {
     'Content-Type': 'application/json',
@@ -33,13 +38,14 @@ api.interceptors.request.use(
     
     // 요청 로깅 (개발 환경에서만)
     if (process.env.NODE_ENV === 'development') {
-      console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, config.data);
+      console.log(`🚀 API.js Request: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`📍 Full URL: ${config.baseURL}${config.url}`);
     }
     
     return config;
   },
   (error) => {
-    console.error('API 요청 오류:', error);
+    console.error('❌ API 요청 오류:', error);
     return Promise.reject(error);
   }
 );
@@ -69,12 +75,21 @@ api.interceptors.response.use(
   (response) => {
     // 응답 로깅 (개발 환경에서만)
     if (process.env.NODE_ENV === 'development') {
-      console.log(`API Response: ${response.config.url}`, response.data);
+      console.log(`✅ API.js Response: ${response.config.url}`, response.data);
     }
     return response;
   },
   async (error) => {
     const original = error.config;
+
+    // 에러 로깅
+    console.error('❌ API.js 응답 오류:', {
+      status: error.response?.status,
+      message: error.message,
+      url: error.config?.url,
+      fullURL: error.config?.baseURL + error.config?.url,
+      data: error.response?.data
+    });
 
     // 401 에러 (인증 실패) 처리
     if (error.response?.status === 401 && !original._retry) {
@@ -104,14 +119,6 @@ api.interceptors.response.use(
         }
       }
     }
-
-    // 에러 로깅
-    console.error('API 응답 오류:', {
-      status: error.response?.status,
-      message: error.message,
-      url: error.config?.url,
-      data: error.response?.data
-    });
 
     return Promise.reject(error);
   }
