@@ -54,13 +54,15 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 요청 로깅 미들웨어 (개발 환경에서만)
-if (process.env.NODE_ENV === 'development' || process.env.LOG_REQUESTS === 'true') {
-  app.use((req, res, next) => {
-    console.log(`📡 ${new Date().toISOString()} - ${req.method} ${req.url}`);
-    next();
-  });
-}
+// 요청 로깅 미들웨어 - 항상 활성화
+app.use((req, res, next) => {
+  console.log(`📡 ${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log(`📋 Headers:`, JSON.stringify(req.headers, null, 2));
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log(`📦 Body:`, JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
 
 // 기본 라우트 (헬스 체크 겸용)
 app.get('/', (req, res) => {
@@ -119,7 +121,8 @@ app.get('/api/docs', (req, res) => {
       'GET /': 'API 정보',
       'GET /api/health': '시스템 상태 확인',
       'GET /api/docs': 'API 문서',
-      'POST /api/chat/send': '채팅 메시지 전송',
+      'POST /api/chat/start': '채팅 세션 시작',
+      'POST /api/chat/message': '채팅 메시지 전송',
       'GET /api/bible/search': '성경 구절 검색',
       'POST /api/prayer/generate': '기도문 생성'
     },
@@ -130,45 +133,34 @@ app.get('/api/docs', (req, res) => {
   });
 });
 
-// 라우터 설정 (데이터베이스 연결 후에만 활성화)
-const initializeRoutes = () => {
-  if (!database.getConnectionStatus().isConnected) {
-    console.log('⏳ 데이터베이스 연결 대기 중... 라우터 초기화 지연');
-    setTimeout(initializeRoutes, 2000);
-    return;
-  }
+// 직접 라우터 로드 - 지연 없이
+console.log('🔄 라우터 로드 시작...');
 
-  try {
-    // 기본 라우터만 먼저 로드 (파일이 존재할 때만)
-    try {
-      const chatRoutes = require('./routes/chat');
-      app.use('/api/chat', chatRoutes);
-      console.log('✅ Chat 라우터 로드됨');
-    } catch (error) {
-      console.log('⚠️ Chat 라우터를 찾을 수 없습니다. 나중에 추가하세요.');
-    }
+try {
+  const chatRoutes = require('./routes/chat');
+  app.use('/api/chat', chatRoutes);
+  console.log('✅ Chat 라우터 로드됨');
+} catch (error) {
+  console.error('❌ Chat 라우터 로드 실패:', error.message);
+}
 
-    try {
-      const bibleRoutes = require('./routes/bible');
-      app.use('/api/bible', bibleRoutes);
-      console.log('✅ Bible 라우터 로드됨');
-    } catch (error) {
-      console.log('⚠️ Bible 라우터를 찾을 수 없습니다. 나중에 추가하세요.');
-    }
+try {
+  const bibleRoutes = require('./routes/bible');
+  app.use('/api/bible', bibleRoutes);
+  console.log('✅ Bible 라우터 로드됨');
+} catch (error) {
+  console.error('❌ Bible 라우터 로드 실패:', error.message);
+}
 
-    try {
-      const prayerRoutes = require('./routes/prayer');
-      app.use('/api/prayer', prayerRoutes);
-      console.log('✅ Prayer 라우터 로드됨');
-    } catch (error) {
-      console.log('⚠️ Prayer 라우터를 찾을 수 없습니다. 나중에 추가하세요.');
-    }
+try {
+  const prayerRoutes = require('./routes/prayer');
+  app.use('/api/prayer', prayerRoutes);
+  console.log('✅ Prayer 라우터 로드됨');
+} catch (error) {
+  console.error('❌ Prayer 라우터 로드 실패:', error.message);
+}
 
-    console.log('✅ 사용 가능한 API 라우터 초기화 완료');
-  } catch (error) {
-    console.error('❌ 라우터 초기화 실패:', error.message);
-  }
-};
+console.log('✅ 모든 라우터 로드 완료');
 
 // Socket.IO 연결 처리
 io.on('connection', (socket) => {
@@ -264,14 +256,21 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 핸들링
+// 404 핸들링 - 상세 로그 추가
 app.use('*', (req, res) => {
+  console.log(`❌ 404 에러: ${req.method} ${req.url}`);
+  console.log(`📍 요청된 경로를 찾을 수 없습니다.`);
+  
   res.status(404).json({
     error: '요청하신 경로를 찾을 수 없습니다.',
+    requestedPath: req.url,
+    method: req.method,
     availableEndpoints: {
       'GET /': 'API 정보',
       'GET /api/health': '시스템 상태',
-      'GET /api/docs': 'API 문서'
+      'GET /api/docs': 'API 문서',
+      'POST /api/chat/start': '채팅 세션 시작',
+      'POST /api/chat/message': '채팅 메시지 전송'
     },
     timestamp: new Date().toISOString()
   });
@@ -284,9 +283,6 @@ const startServer = async () => {
   try {
     // 데이터베이스 연결
     await database.connect();
-    
-    // 라우터 초기화
-    setTimeout(initializeRoutes, 1000);
     
     // 서버 시작
     server.listen(PORT, '0.0.0.0', () => {
